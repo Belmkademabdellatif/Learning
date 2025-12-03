@@ -1,16 +1,76 @@
-# CodeLearn Platform
+<div align="center">
+
+# 🎓 CodeLearn Platform
+
+**Interactive Programming Learning with AI Assistance**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-412991?logo=openai&logoColor=white)](https://openai.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+
+[🚀 Live Demo](#) • [📚 Documentation](./docs) • [🐛 Report Bug](../../issues) • [✨ Request Feature](../../issues)
 
 A comprehensive interactive programming learning platform with AI-powered assistance, automated certificate generation, and real-time code execution.
 
-## Features
+</div>
 
-- 🎓 **Learning Tracks**: Structured courses with lessons and coding challenges
-- 💻 **Live Code Editor**: Execute code directly in the browser with real-time feedback
-- 🤖 **AI Chatbot**: RAG-based assistant for answering questions and explaining concepts
-- 📜 **Automated Certificates**: Daily generation of completion certificates with QR codes
-- 📊 **Progress Tracking**: Comprehensive dashboard showing learning progress
-- 👥 **Multi-Role System**: Support for students, instructors, and administrators
-- 🔐 **Secure Authentication**: JWT + OAuth (Google, GitHub)
+---
+
+## 🌟 Key Highlights
+
+<table>
+<tr>
+<td width="50%">
+
+### 🎓 For Learners
+- ✅ Interactive lessons with examples
+- ✅ Real-time code execution
+- ✅ Instant feedback on challenges
+- ✅ AI tutor available 24/7
+- ✅ Track your progress
+- ✅ Earn verified certificates
+
+</td>
+<td width="50%">
+
+### 👨‍🏫 For Educators
+- ✅ Create custom tracks
+- ✅ Design coding challenges
+- ✅ Monitor student progress
+- ✅ Auto-grade submissions
+- ✅ Manage content easily
+- ✅ Export analytics
+
+</td>
+</tr>
+</table>
+
+---
+
+## ✨ Features
+
+### 🎯 Core Features
+- 🎓 **Learning Tracks** - Structured courses with lessons and coding challenges
+- 💻 **Live Code Editor** - Execute JavaScript & Python directly in browser
+- 🤖 **AI Chatbot** - GPT-4 powered assistant with RAG for contextual help
+- 📜 **Automated Certificates** - Daily PDF generation with QR verification codes
+- 📊 **Progress Tracking** - Comprehensive dashboard showing learning analytics
+- ✅ **Auto-Grading** - Instant feedback with detailed test results
+- 👥 **Multi-Role System** - Students, instructors, and administrators
+- 🔐 **Secure Authentication** - JWT + OAuth (Google, GitHub)
+- 🔒 **Code Sandbox** - Docker-isolated execution environment
+
+### 🚀 Technical Features
+- ⚡ **Real-time Execution** - Sub-2s code execution
+- 📱 **Responsive Design** - Mobile-friendly interface
+- 🌐 **RESTful API** - 25+ endpoints with Swagger docs
+- 🔄 **Auto-Deploy** - CI/CD with GitHub Actions
+- 📈 **Scalable** - Kubernetes-ready architecture
+- 🛡️ **OWASP Compliant** - Top 10 security standards
 
 ## Architecture
 
