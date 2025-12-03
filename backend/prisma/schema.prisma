@@ -1,0 +1,330 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// USER MANAGEMENT
+// ================================
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  GITHUB
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  password      String?       // Nullable for OAuth users
+  firstName     String
+  lastName      String
+  avatar        String?
+  role          UserRole      @default(STUDENT)
+  authProvider  AuthProvider  @default(LOCAL)
+  emailVerified Boolean       @default(false)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  enrollments   Enrollment[]
+  completions   Completion[]
+  submissions   Submission[]
+  certificates  Certificate[]
+  chatMessages  ChatMessage[]
+  refreshTokens RefreshToken[]
+  createdTracks Track[]       @relation("CreatedBy")
+  createdLessons Lesson[]     @relation("CreatedBy")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ================================
+// LEARNING TRACKS & CONTENT
+// ================================
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model Track {
+  id              String      @id @default(cuid())
+  title           String
+  slug            String      @unique
+  description     String
+  coverImage      String?
+  difficulty      Difficulty
+  estimatedHours  Int
+  tags            String[]
+  prerequisites   String[]
+  isPublished     Boolean     @default(false)
+  createdById     String
+  createdBy       User        @relation("CreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  lessons         Lesson[]
+  enrollments     Enrollment[]
+  certificates    Certificate[]
+
+  @@index([slug])
+  @@index([isPublished])
+  @@index([difficulty])
+  @@map("tracks")
+}
+
+model Lesson {
+  id              String      @id @default(cuid())
+  title           String
+  slug            String
+  description     String
+  content         String      @db.Text  // Markdown or HTML
+  orderIndex      Int
+  estimatedMinutes Int
+  videoUrl        String?
+  isPublished     Boolean     @default(false)
+  trackId         String
+  track           Track       @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  createdById     String
+  createdBy       User        @relation("CreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  challenges      Challenge[]
+  completions     Completion[]
+
+  @@unique([trackId, slug])
+  @@index([trackId, orderIndex])
+  @@map("lessons")
+}
+
+// ================================
+// CODING CHALLENGES
+// ================================
+
+enum ProgrammingLanguage {
+  JAVASCRIPT
+  PYTHON
+  TYPESCRIPT
+  JAVA
+  CPP
+  GO
+  RUST
+}
+
+model Challenge {
+  id              String              @id @default(cuid())
+  title           String
+  description     String              @db.Text
+  difficulty      Difficulty
+  points          Int                 @default(0)
+  language        ProgrammingLanguage
+  starterCode     String              @db.Text
+  solutionCode    String              @db.Text
+  testCases       Json                // Array of test cases
+  hints           String[]
+  orderIndex      Int
+  lessonId        String
+  lesson          Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  // Relations
+  submissions     Submission[]
+
+  @@index([lessonId])
+  @@index([difficulty])
+  @@map("challenges")
+}
+
+model Submission {
+  id              String      @id @default(cuid())
+  code            String      @db.Text
+  language        ProgrammingLanguage
+  status          SubmissionStatus
+  score           Int         @default(0)
+  executionTime   Int?        // milliseconds
+  memoryUsed      Int?        // bytes
+  testResults     Json        // Detailed test results
+  errorMessage    String?     @db.Text
+  challengeId     String
+  challenge       Challenge   @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submittedAt     DateTime    @default(now())
+
+  @@index([userId, challengeId])
+  @@index([status])
+  @@map("submissions")
+}
+
+enum SubmissionStatus {
+  PENDING
+  RUNNING
+  PASSED
+  FAILED
+  ERROR
+  TIMEOUT
+}
+
+// ================================
+// PROGRESS TRACKING
+// ================================
+
+model Enrollment {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackId         String
+  track           Track       @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  progress        Json        @default("{}")  // { lessonId: true, ... }
+  lastAccessedAt  DateTime    @default(now())
+  completedAt     DateTime?
+  enrolledAt      DateTime    @default(now())
+
+  @@unique([userId, trackId])
+  @@index([userId])
+  @@index([trackId])
+  @@map("enrollments")
+}
+
+model Completion {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId        String
+  lesson          Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt     DateTime    @default(now())
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("completions")
+}
+
+// ================================
+// CERTIFICATES
+// ================================
+
+enum CertificateStatus {
+  PENDING
+  GENERATED
+  FAILED
+}
+
+model Certificate {
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackId           String
+  track             Track             @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  verificationCode  String            @unique
+  qrCodeUrl         String?
+  pdfUrl            String?
+  status            CertificateStatus @default(PENDING)
+  issuedAt          DateTime          @default(now())
+  generatedAt       DateTime?
+  expiresAt         DateTime?
+
+  @@unique([userId, trackId])
+  @@index([userId])
+  @@index([verificationCode])
+  @@map("certificates")
+}
+
+// ================================
+// AI CHATBOT
+// ================================
+
+model ChatMessage {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message         String      @db.Text
+  response        String      @db.Text
+  context         Json?       // Retrieved context from RAG
+  metadata        Json?       // Model, tokens, etc.
+  createdAt       DateTime    @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
+model VectorDocument {
+  id              String      @id @default(cuid())
+  contentType     String      // 'lesson', 'track', 'challenge'
+  contentId       String
+  content         String      @db.Text
+  metadata        Json
+  vectorId        String?     // Weaviate UUID
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([contentType, contentId])
+  @@index([vectorId])
+  @@map("vector_documents")
+}
+
+// ================================
+// SYSTEM & ANALYTICS
+// ================================
+
+model ActivityLog {
+  id              String      @id @default(cuid())
+  userId          String?
+  action          String
+  entityType      String?
+  entityId        String?
+  metadata        Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime    @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model SystemConfig {
+  id              String      @id @default(cuid())
+  key             String      @unique
+  value           String      @db.Text
+  description     String?
+  updatedAt       DateTime    @updatedAt
+
+  @@map("system_config")
+}
