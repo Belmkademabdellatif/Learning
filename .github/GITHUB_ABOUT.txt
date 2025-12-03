@@ -1,0 +1,19 @@
+# Copy these to your GitHub repository "About" section
+
+## Description (paste in GitHub About):
+🎓 Interactive programming learning platform with AI chatbot, live code execution, automated certificates, and progress tracking. Next.js • NestJS • PostgreSQL • OpenAI
+
+## Website (after deployment):
+https://your-app.railway.app
+
+## Topics (add as tags):
+learning-platform education e-learning programming nextjs nestjs typescript react postgresql prisma ai-chatbot openai gpt-4 rag code-execution certificates docker kubernetes fullstack online-learning interactive-learning code-challenges auto-grading oauth jwt-authentication vector-database weaviate monaco-editor educational-technology
+
+## How to add:
+1. Go to: https://github.com/Belmkademabdellatif/Learning
+2. Click the ⚙️ (gear) icon next to "About"
+3. Paste description
+4. Add website URL (after deployment)
+5. Add topics (space-separated)
+6. Check "✅ Include in the home page"
+7. Click "Save changes"
