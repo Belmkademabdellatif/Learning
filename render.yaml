@@ -1,0 +1,81 @@
+services:
+  # Backend API
+  - type: web
+    name: codelearn-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: codelearn-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: codelearn-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: S3_ENDPOINT
+        value: https://s3.amazonaws.com
+      - key: S3_BUCKET_NAME
+        value: codelearn-certificates
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+
+  # Frontend
+  - type: web
+    name: codelearn-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://codelearn-backend.onrender.com
+      - key: NEXTAUTH_URL
+        sync: false
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+
+# Databases
+databases:
+  - name: codelearn-db
+    databaseName: codelearn
+    user: codelearn
+    plan: free
+
+# Redis
+  - type: redis
+    name: codelearn-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
