@@ -185,9 +185,39 @@ model Submission {
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   submittedAt     DateTime    @default(now())
 
+  // AI Code Mentor review (generated after execution completes)
+  codeReview      CodeReview?
+
   @@index([userId, challengeId])
   @@index([status])
   @@map("submissions")
+}
+
+// ================================
+// AI CODE MENTOR
+// ================================
+
+model CodeReview {
+  id                   String     @id @default(cuid())
+  submissionId         String     @unique
+  submission           Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  // Analysis results
+  complexityTime       String     // e.g. "O(n)", "O(n log n)"
+  complexitySpace      String     // e.g. "O(1)", "O(n)"
+  qualityScore         Int        // 0–100
+  strengths            String[]   // What the student did well
+  improvements         String[]   // Concrete suggestions
+  alternativeApproach  String?    @db.Text  // A hint toward a better solution
+  summary              String     @db.Text  // One-paragraph overall feedback
+
+  // Metadata
+  aiModel              String
+  tokensUsed           Int        @default(0)
+  createdAt            DateTime   @default(now())
+
+  @@index([submissionId])
+  @@map("code_reviews")
 }
 
 enum SubmissionStatus {

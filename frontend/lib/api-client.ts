@@ -83,6 +83,7 @@ export const api = {
   submissions: {
     submit: (data: any) => apiClient.post('/submissions', data),
     getOne: (id: string) => apiClient.get(`/submissions/${id}`),
+    getReview: (id: string) => apiClient.get(`/submissions/${id}/review`),
   },
   certificates: {
     getAll: () => apiClient.get('/certificates'),

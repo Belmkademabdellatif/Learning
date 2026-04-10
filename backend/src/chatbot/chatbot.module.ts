@@ -7,6 +7,6 @@ import { OpenAiService } from './openai.service';
 @Module({
   controllers: [ChatbotController],
   providers: [ChatbotService, VectorService, OpenAiService],
-  exports: [ChatbotService, VectorService],
+  exports: [ChatbotService, VectorService, OpenAiService],
 })
 export class ChatbotModule {}

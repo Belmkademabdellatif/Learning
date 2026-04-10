@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ExecutorService } from '../executor/executor.service';
+import { CodeReviewService } from '../code-review/code-review.service';
 import { SubmissionStatus } from '@prisma/client';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class SubmissionsService {
   constructor(
     private prisma: PrismaService,
     private executorService: ExecutorService,
+    private codeReviewService: CodeReviewService,
   ) {}
 
   async submit(userId: string, challengeId: string, code: string) {
@@ -72,6 +74,9 @@ export class SubmissionsService {
           executionTime: results.totalExecutionTime,
         },
       });
+
+      // Trigger AI Code Mentor review asynchronously (non-blocking)
+      this.codeReviewService.generateAndSave(submissionId).catch(() => {});
     } catch (error) {
       const isTimeout = error.message === 'Execution timeout';
       await this.prisma.submission.update({
