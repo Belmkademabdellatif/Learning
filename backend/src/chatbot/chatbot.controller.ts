@@ -2,10 +2,13 @@ import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { IsString } from 'class-validator';
+import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { IsString, MaxLength } from 'class-validator';
+import { UserRole } from '@prisma/client';
 
 class ChatQueryDto {
   @IsString()
+  @MaxLength(2000)
   message: string;
 }
 
@@ -29,6 +32,8 @@ export class ChatbotController {
   }
 
   @Post('reindex')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Reindex all content (admin only)' })
   async reindex() {
     return this.chatbotService.indexContent();

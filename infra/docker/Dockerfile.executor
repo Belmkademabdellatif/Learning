@@ -3,11 +3,11 @@ FROM docker:24-dind
 # Install Node.js for the executor service
 RUN apk add --no-cache nodejs npm python3 py3-pip
 
-# Pre-pull execution images
-RUN docker pull node:18-alpine && \
-    docker pull python:3.11-alpine
+# Pre-pull execution images (run at container startup, not build time)
+COPY entrypoint.sh /executor/entrypoint.sh
+RUN chmod +x /executor/entrypoint.sh
 
 WORKDIR /executor
 
-# Keep container running
-CMD ["dockerd"]
+# Start dockerd and pre-pull execution images
+CMD ["/executor/entrypoint.sh"]

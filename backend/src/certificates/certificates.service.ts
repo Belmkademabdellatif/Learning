@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { PdfService } from './pdf.service';
 import { S3Service } from './s3.service';
@@ -25,34 +25,33 @@ export class CertificatesService {
       },
     });
 
-    if (!enrollment || !enrollment.completedAt) {
-      throw new Error('Track not completed');
+    if (!enrollment) {
+      throw new BadRequestException('You are not enrolled in this track');
     }
 
-    // Check if certificate already exists
-    let certificate = await this.prisma.certificate.findUnique({
-      where: {
-        userId_trackId: { userId, trackId },
-      },
-    });
-
-    if (certificate && certificate.status === CertificateStatus.GENERATED) {
-      return certificate;
+    if (!enrollment.completedAt) {
+      throw new BadRequestException('Track has not been completed yet');
     }
 
     // Generate verification code
     const verificationCode = nanoid(16).toUpperCase();
 
-    // Create or update certificate
-    if (!certificate) {
-      certificate = await this.prisma.certificate.create({
-        data: {
-          userId,
-          trackId,
-          verificationCode,
-          status: CertificateStatus.PENDING,
-        },
-      });
+    // Use upsert to avoid race condition between concurrent requests
+    let certificate = await this.prisma.certificate.upsert({
+      where: {
+        userId_trackId: { userId, trackId },
+      },
+      update: {},
+      create: {
+        userId,
+        trackId,
+        verificationCode,
+        status: CertificateStatus.PENDING,
+      },
+    });
+
+    if (certificate.status === CertificateStatus.GENERATED) {
+      return certificate;
     }
 
     try {
@@ -65,8 +64,9 @@ export class CertificatesService {
       });
 
       // Generate QR code and upload
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const qrCodeBuffer = await this.pdfService.generateQRCode(
-        `${process.env.FRONTEND_URL}/verify/${verificationCode}`,
+        `${frontendUrl}/verify/${verificationCode}`,
       );
 
       const qrCodeUrl = await this.s3Service.upload(
@@ -174,7 +174,7 @@ export class CertificatesService {
     const certificate = await this.getCertificate(id, userId);
 
     if (!certificate.pdfUrl) {
-      throw new Error('Certificate PDF not available');
+      throw new BadRequestException('Certificate PDF not available');
     }
 
     // Generate signed URL

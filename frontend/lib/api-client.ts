@@ -27,6 +27,14 @@ apiClient.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
+
+        // No refresh token available; redirect to login immediately
+        if (!refreshToken) {
+          localStorage.removeItem('access_token');
+          window.location.href = '/login';
+          return Promise.reject(error);
+        }
+
         const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
           refreshToken,
         });

@@ -53,10 +53,14 @@ export class VectorService {
   }
 
   async indexDocument(doc: Document) {
+    if (!doc.content?.trim()) {
+      return null;
+    }
+
     // Generate embedding
     const embedding = await this.openAi.generateEmbedding(doc.content);
 
-    // Create object in Weaviate
+    // Create object in Weaviate first
     const result = await this.client.data
       .creator()
       .withClassName(this.className)
@@ -69,32 +73,44 @@ export class VectorService {
       .withVector(embedding)
       .do();
 
-    // Save reference in Prisma
-    await this.prisma.vectorDocument.upsert({
-      where: {
-        contentType_contentId: {
+    // Save reference in Prisma; if this fails, clean up the Weaviate entry
+    try {
+      await this.prisma.vectorDocument.upsert({
+        where: {
+          contentType_contentId: {
+            contentType: doc.contentType,
+            contentId: doc.contentId,
+          },
+        },
+        update: {
+          content: doc.content,
+          metadata: doc.metadata,
+          vectorId: result.id,
+        },
+        create: {
           contentType: doc.contentType,
           contentId: doc.contentId,
+          content: doc.content,
+          metadata: doc.metadata,
+          vectorId: result.id,
         },
-      },
-      update: {
-        content: doc.content,
-        metadata: doc.metadata,
-        vectorId: result.id,
-      },
-      create: {
-        contentType: doc.contentType,
-        contentId: doc.contentId,
-        content: doc.content,
-        metadata: doc.metadata,
-        vectorId: result.id,
-      },
-    });
+      });
+    } catch (prismaError) {
+      // Roll back the Weaviate entry to keep stores in sync
+      await this.client.data
+        .deleter()
+        .withClassName(this.className)
+        .withId(result.id)
+        .do()
+        .catch(() => {}); // Best-effort cleanup
+      throw prismaError;
+    }
 
     return result.id;
   }
 
   async search(query: string, limit: number = 5) {
+    const safeLimit = Math.min(Math.max(1, limit), 20); // Clamp to [1, 20]
     // Generate embedding for query
     const embedding = await this.openAi.generateEmbedding(query);
 
@@ -104,7 +120,7 @@ export class VectorService {
       .withClassName(this.className)
       .withFields('content contentType contentId metadata')
       .withNearVector({ vector: embedding })
-      .withLimit(limit)
+      .withLimit(safeLimit)
       .do();
 
     return result.data.Get[this.className] || [];

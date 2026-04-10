@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -166,15 +166,22 @@ export class AuthService {
     // Access token
     const accessToken = this.jwtService.sign(payload);
 
+    // Parse refresh token expiry from config (e.g. "7d", "30d")
+    const refreshExpiresIn = this.config.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
+
     // Refresh token
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.config.get('JWT_REFRESH_SECRET'),
-      expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN') || '7d',
+      expiresIn: refreshExpiresIn,
     });
 
-    // Store refresh token in database
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    // Compute DB expiry to match the JWT expiry
+    const expiresAt = this.parseExpiresIn(refreshExpiresIn);
+
+    // Clean up expired tokens for this user before creating a new one
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId, expiresAt: { lt: new Date() } },
+    });
 
     await this.prisma.refreshToken.create({
       data: {
@@ -190,20 +197,44 @@ export class AuthService {
     };
   }
 
+  /** Parse an expiry string like "7d", "24h", "60m" into a future Date */
+  private parseExpiresIn(expiresIn: string): Date {
+    const now = new Date();
+    const match = expiresIn.match(/^(\d+)([smhd])$/);
+    if (!match) {
+      // Fallback: 7 days
+      now.setDate(now.getDate() + 7);
+      return now;
+    }
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+    switch (unit) {
+      case 's': now.setSeconds(now.getSeconds() + value); break;
+      case 'm': now.setMinutes(now.getMinutes() + value); break;
+      case 'h': now.setHours(now.getHours() + value); break;
+      case 'd': now.setDate(now.getDate() + value); break;
+    }
+    return now;
+  }
+
   // OAuth handlers
   async handleOAuthLogin(profile: any, provider: AuthProvider) {
+    if (!profile?.email) {
+      throw new BadRequestException('OAuth provider did not return an email address');
+    }
+
     let user = await this.prisma.user.findUnique({
       where: { email: profile.email },
     });
 
     if (!user) {
-      // Create new user
+      // Create new user with safe defaults for missing optional fields
       user = await this.prisma.user.create({
         data: {
           email: profile.email,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          avatar: profile.picture,
+          firstName: profile.firstName || 'User',
+          lastName: profile.lastName || '',
+          avatar: profile.picture || null,
           role: UserRole.STUDENT,
           authProvider: provider,
           emailVerified: true,
