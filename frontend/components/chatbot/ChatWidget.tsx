@@ -5,6 +5,12 @@ import { MessageCircle, X, Send } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
+interface ChatMessage {
+  id: string;
+  message: string;
+  response: string;
+}
+
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -49,7 +55,7 @@ export function ChatWidget() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {history?.data?.map((msg: any) => (
+            {history?.data?.map((msg: ChatMessage) => (
               <div key={msg.id} className="space-y-2">
                 <div className="bg-gray-100 p-3 rounded-lg ml-auto max-w-[80%]">
                   <p className="text-sm">{msg.message}</p>

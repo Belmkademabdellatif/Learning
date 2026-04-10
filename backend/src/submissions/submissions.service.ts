@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ExecutorService } from '../executor/executor.service';
 import { SubmissionStatus } from '@prisma/client';
@@ -17,7 +17,7 @@ export class SubmissionsService {
     });
 
     if (!challenge) {
-      throw new Error('Challenge not found');
+      throw new NotFoundException('Challenge not found');
     }
 
     // Create submission
@@ -73,11 +73,11 @@ export class SubmissionsService {
         },
       });
     } catch (error) {
-      // Update submission with error
+      const isTimeout = error.message === 'Execution timeout';
       await this.prisma.submission.update({
         where: { id: submissionId },
         data: {
-          status: SubmissionStatus.ERROR,
+          status: isTimeout ? SubmissionStatus.TIMEOUT : SubmissionStatus.ERROR,
           errorMessage: error.message,
         },
       });

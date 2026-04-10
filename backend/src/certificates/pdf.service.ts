@@ -11,12 +11,26 @@ interface CertificateData {
 
 @Injectable()
 export class PdfService {
+  private escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   async generateCertificatePdf(data: CertificateData): Promise<Buffer> {
     const html = this.getCertificateTemplate(data);
 
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',           // Required inside Docker containers
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Prevents /dev/shm OOM crashes in Docker
+        '--disable-gpu',
+      ],
     });
 
     try {
@@ -44,6 +58,10 @@ export class PdfService {
   }
 
   private getCertificateTemplate(data: CertificateData): string {
+    const userName = this.escapeHtml(data.userName);
+    const trackTitle = this.escapeHtml(data.trackTitle);
+    const verificationCode = this.escapeHtml(data.verificationCode);
+
     const formattedDate = new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'long',
@@ -179,11 +197,11 @@ export class PdfService {
 
           <div class="content">
             <div class="awarded-to">This is proudly presented to</div>
-            <div class="recipient-name">${data.userName}</div>
+            <div class="recipient-name">${userName}</div>
             <div class="completion-text">
               For successfully completing the
             </div>
-            <div class="track-title">${data.trackTitle}</div>
+            <div class="track-title">${trackTitle}</div>
             <div class="completion-text">
               Demonstrating dedication, skill, and mastery of the course material
             </div>
@@ -196,7 +214,7 @@ export class PdfService {
             </div>
             <div class="verification">
               <strong>Verification Code:</strong><br>
-              <span class="verification-code">${data.verificationCode}</span>
+              <span class="verification-code">${verificationCode}</span>
             </div>
           </div>
 

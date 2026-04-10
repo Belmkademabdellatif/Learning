@@ -148,11 +148,11 @@ export class ExecutorService {
       },
       [ProgrammingLanguage.PYTHON]: {
         image: 'python:3.11-alpine',
-        command: ['python', '-c', 'import base64; exec(base64.b64decode(os.environ["CODE"]))'],
+        command: ['python', '-c', 'import os, base64; exec(base64.b64decode(os.environ["CODE"]))'],
       },
       [ProgrammingLanguage.TYPESCRIPT]: {
-        image: 'node:18-alpine',
-        command: ['ts-node', '-e', 'eval(Buffer.from(process.env.CODE, "base64").toString())'],
+        image: 'node:22-alpine',
+        command: ['sh', '-c', 'echo "$CODE" | base64 -d > /tmp/solution.ts && node --experimental-strip-types /tmp/solution.ts'],
       },
     };
 

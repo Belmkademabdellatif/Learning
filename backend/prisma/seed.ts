@@ -4,10 +4,20 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('Seeding database...');
 
-  // Create admin user
-  const adminPassword = await bcrypt.hash('admin123', 12);
+  // Passwords read from env vars; never hardcode credentials in source code
+  const adminRawPassword = process.env.SEED_ADMIN_PASSWORD;
+  const instructorRawPassword = process.env.SEED_INSTRUCTOR_PASSWORD;
+  const studentRawPassword = process.env.SEED_STUDENT_PASSWORD;
+
+  if (!adminRawPassword || !instructorRawPassword || !studentRawPassword) {
+    throw new Error(
+      'Seed passwords must be provided via SEED_ADMIN_PASSWORD, SEED_INSTRUCTOR_PASSWORD, SEED_STUDENT_PASSWORD env vars',
+    );
+  }
+
+  const adminPassword = await bcrypt.hash(adminRawPassword, 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@codelearn.com' },
     update: {},
@@ -20,10 +30,10 @@ async function main() {
       emailVerified: true,
     },
   });
-  console.log('✅ Created admin user:', admin.email);
+  console.log('Created admin user:', admin.email);
 
   // Create instructor
-  const instructorPassword = await bcrypt.hash('instructor123', 12);
+  const instructorPassword = await bcrypt.hash(instructorRawPassword, 12);
   const instructor = await prisma.user.upsert({
     where: { email: 'instructor@codelearn.com' },
     update: {},
@@ -36,10 +46,10 @@ async function main() {
       emailVerified: true,
     },
   });
-  console.log('✅ Created instructor user:', instructor.email);
+  console.log('Created instructor user:', instructor.email);
 
   // Create student
-  const studentPassword = await bcrypt.hash('student123', 12);
+  const studentPassword = await bcrypt.hash(studentRawPassword, 12);
   const student = await prisma.user.upsert({
     where: { email: 'student@codelearn.com' },
     update: {},
@@ -52,7 +62,7 @@ async function main() {
       emailVerified: true,
     },
   });
-  console.log('✅ Created student user:', student.email);
+  console.log('Created student user:', student.email);
 
   // Create JavaScript Fundamentals Track
   const jsTrack = await prisma.track.upsert({
@@ -70,7 +80,7 @@ async function main() {
       createdById: instructor.id,
     },
   });
-  console.log('✅ Created track:', jsTrack.title);
+  console.log('Created track:', jsTrack.title);
 
   // Create Lessons
   const lesson1 = await prisma.lesson.create({
@@ -175,7 +185,7 @@ items.forEach(item => console.log(item));
     },
   });
 
-  console.log('✅ Created lessons:', lesson1.title, lesson2.title);
+  console.log('Created lessons:', lesson1.title, lesson2.title);
 
   // Create Challenges
   const challenge1 = await prisma.challenge.create({
@@ -232,7 +242,7 @@ items.forEach(item => console.log(item));
     },
   });
 
-  console.log('✅ Created challenges:', challenge1.title, challenge2.title);
+  console.log('Created challenges:', challenge1.title, challenge2.title);
 
   // Create Python Track
   const pythonTrack = await prisma.track.create({
@@ -248,7 +258,7 @@ items.forEach(item => console.log(item));
       createdById: instructor.id,
     },
   });
-  console.log('✅ Created track:', pythonTrack.title);
+  console.log('Created track:', pythonTrack.title);
 
   // Create system config
   await prisma.systemConfig.upsert({
@@ -271,18 +281,17 @@ items.forEach(item => console.log(item));
     },
   });
 
-  console.log('✅ Created system configuration');
+  console.log('Created system configuration');
 
-  console.log('\n🎉 Seeding completed successfully!');
-  console.log('\n📧 Test Credentials:');
-  console.log('Admin: admin@codelearn.com / admin123');
-  console.log('Instructor: instructor@codelearn.com / instructor123');
-  console.log('Student: student@codelearn.com / student123');
+  console.log('\nSeeding completed successfully!');
+  console.log('Admin:      admin@codelearn.com');
+  console.log('Instructor: instructor@codelearn.com');
+  console.log('Student:    student@codelearn.com');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error seeding database:', e);
+    console.error('Error seeding database:', e);
     process.exit(1);
   })
   .finally(async () => {

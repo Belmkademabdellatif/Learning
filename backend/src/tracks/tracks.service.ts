@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { Difficulty } from '@prisma/client';
 
@@ -52,19 +52,24 @@ export class TracksService {
   }
 
   async enroll(userId: string, trackId: string) {
-    // Check if already enrolled
-    const existing = await this.prisma.enrollment.findUnique({
-      where: {
-        userId_trackId: { userId, trackId },
-      },
+    // Verify track exists and is published before enrolling
+    const track = await this.prisma.track.findUnique({
+      where: { id: trackId },
+      select: { id: true, isPublished: true },
     });
 
-    if (existing) {
-      return existing;
+    if (!track) {
+      throw new NotFoundException('Track not found');
     }
 
-    return this.prisma.enrollment.create({
-      data: {
+    if (!track.isPublished) {
+      throw new BadRequestException('Cannot enroll in an unpublished track');
+    }
+
+    return this.prisma.enrollment.upsert({
+      where: { userId_trackId: { userId, trackId } },
+      update: {},
+      create: {
         userId,
         trackId,
         progress: { lessonsCompleted: [], challengesCompleted: [], percentComplete: 0 },
@@ -105,7 +110,9 @@ export class TracksService {
       select: { lessonId: true },
     });
 
-    const totalLessons = enrollment.track.lessons.length;
+    // Only count published lessons for an accurate progress calculation
+    const publishedLessons = enrollment.track.lessons.filter((l: any) => l.isPublished !== false);
+    const totalLessons = publishedLessons.length;
     const completedLessons = completions.length;
     const percentComplete = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 

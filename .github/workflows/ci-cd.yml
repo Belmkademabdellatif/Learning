@@ -12,7 +12,20 @@ env:
   FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
 
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test-backend:
+    needs: secret-scan
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -67,6 +80,7 @@ jobs:
           npm run build
 
   test-frontend:
+    needs: secret-scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -162,15 +176,24 @@ jobs:
       - name: Configure kubectl
         run: |
           echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
-          export KUBECONFIG=kubeconfig.yaml
 
       - name: Deploy to Kubernetes
+        env:
+          KUBECONFIG: kubeconfig.yaml
         run: |
           kubectl apply -f infra/k8s/deployment.yaml
-          kubectl rollout status deployment/backend -n codelearn
-          kubectl rollout status deployment/frontend -n codelearn
+          kubectl rollout status deployment/backend -n codelearn --timeout=5m || \
+            (kubectl rollout undo deployment/backend -n codelearn && exit 1)
+          kubectl rollout status deployment/frontend -n codelearn --timeout=5m || \
+            (kubectl rollout undo deployment/frontend -n codelearn && exit 1)
 
       - name: Verify deployment
+        env:
+          KUBECONFIG: kubeconfig.yaml
         run: |
           kubectl get pods -n codelearn
           kubectl get services -n codelearn
+
+      - name: Clean up kubeconfig
+        if: always()
+        run: rm -f kubeconfig.yaml

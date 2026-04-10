@@ -49,20 +49,13 @@ export class LessonsService {
   }
 
   async markComplete(userId: string, lessonId: string) {
-    // Check if already completed
-    const existing = await this.prisma.completion.findUnique({
+    // Use upsert to avoid race condition from concurrent requests
+    const completion = await this.prisma.completion.upsert({
       where: {
         userId_lessonId: { userId, lessonId },
       },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    // Mark as complete
-    const completion = await this.prisma.completion.create({
-      data: {
+      update: {},
+      create: {
         userId,
         lessonId,
       },

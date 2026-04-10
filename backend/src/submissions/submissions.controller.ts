@@ -2,13 +2,15 @@ import { Controller, Post, Get, Body, Param, UseGuards, Req } from '@nestjs/comm
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SubmissionsService } from './submissions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { IsString } from 'class-validator';
+import { IsString, MaxLength, IsUUID } from 'class-validator';
 
 class SubmitCodeDto {
   @IsString()
+  @MaxLength(50000) // 50 KB hard cap on submitted code
   code: string;
 
   @IsString()
+  @IsUUID()
   challengeId: string;
 }
 
