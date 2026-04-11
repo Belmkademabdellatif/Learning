@@ -15,6 +15,8 @@ import { ChatbotModule } from './chatbot/chatbot.module';
 import { ExecutorModule } from './executor/executor.module';
 import { JobsModule } from './jobs/jobs.module';
 import { CodeReviewModule } from './code-review/code-review.module';
+import { AdminModule } from './admin/admin.module';
+import { HealthModule } from './health/health.module';
 
 const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
@@ -82,6 +84,8 @@ const envValidationSchema = Joi.object({
     ExecutorModule,
     JobsModule,
     CodeReviewModule,
+    AdminModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
